@@ -1,6 +1,6 @@
 """
 Fetcher
-Handles HTTP requests with auth, custom headers, pagination, 
+Handles HTTP requests with auth, custom headers, pagination,
 rate-limit retries, and returns raw JSON records.
 """
 
@@ -31,7 +31,9 @@ def _fetch_page(
     """Fetch a single page with retry on rate limit (429) or server errors."""
     for attempt in range(retries):
         try:
-            response = client.request(method, url, headers=headers, params=params, timeout=30)
+            response = client.request(
+                method, url, headers=headers, params=params, timeout=30
+            )
             if response.status_code == 429:
                 wait = int(response.headers.get("Retry-After", 5))
                 print(f"[fetcher] Rate limited. Waiting {wait}s...")
@@ -42,8 +44,10 @@ def _fetch_page(
         except httpx.HTTPStatusError as e:
             if attempt == retries - 1:
                 raise
-            print(f"[fetcher] HTTP error {e.response.status_code}, retrying ({attempt+1}/{retries})...")
-            time.sleep(2 ** attempt)
+            print(
+                f"[fetcher] HTTP error {e.response.status_code}, retrying ({attempt+1}/{retries})..."
+            )
+            time.sleep(2**attempt)
     raise RuntimeError("Max retries exceeded")
 
 
