@@ -5,7 +5,7 @@ sys.path.insert(0, '.')
 from core.config_loader import load_config
 from core.fetcher import fetch_all
 from core.flattener import flatten_records
-from core.schema_inferer import infer_schema
+from core.schema_inferrer import infer_schema
 from core.loader import get_engine, load_records
 
 

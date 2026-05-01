@@ -15,7 +15,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
 from core.config_loader import SourceConfig
-from core.schema_inferer import ensure_table, infer_schema
+from core.schema_inferrer import ensure_table, infer_schema
 
 logger = logging.getLogger(__name__)
 

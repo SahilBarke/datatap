@@ -4,7 +4,7 @@ sys.path.insert(0, ".")
 
 import pytest
 from core.flattener import flatten, flatten_records, extract_results, apply_transform
-from core.schema_inferer import infer_schema
+from core.schema_inferrer import infer_schema
 from core.config_loader import load_config, SourceConfig
 from core.loader import get_engine, load_records
 
