@@ -32,7 +32,7 @@ def _fetch_page(
     for attempt in range(retries):
         try:
             response = client.request(
-                method, url, headers=headers, params=params, timeout=30
+                method, str(url), headers=headers, params=params, timeout=30
             )
             if response.status_code == 429:
                 wait = int(response.headers.get("Retry-After", 5))
@@ -60,7 +60,7 @@ def fetch_all(config: SourceConfig) -> list[dict]:
     from core.flattener import extract_results
 
     headers = _build_headers(config)
-    params = dict(config.params)
+    params = dict(getattr(config, "params", {}) or {})
     pagination = config.pagination
     all_records = []
 
