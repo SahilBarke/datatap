@@ -1,0 +1,200 @@
+{% extends "base.html" %} {% block title %}DataTap — {{ cfg.name }}{% endblock
+%} {% block content %}
+<div class="page-header">
+  <div>
+    <div style="color: var(--muted); font-size: 11px; margin-bottom: 4px">
+      <a href="/" style="color: var(--muted); text-decoration: none"
+        >Dashboard</a
+      >
+      / {{ cfg.name }}
+    </div>
+    <div class="page-title">{{ cfg.name }}</div>
+    <div class="page-subtitle">
+      {{ cfg.url }} · every {{ cfg.schedule.interval_mins }}m · table:
+      <code>{{ cfg.storage.table_name }}</code>
+    </div>
+  </div>
+  <div style="display: flex; gap: 8px">
+    <button class="btn btn-primary" onclick="runNow('{{ cfg.name }}', this)">
+      ▶ Run Now
+    </button>
+    <a href="/api/export/{{ cfg.name }}" class="btn btn-ghost">↓ Export CSV</a>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-box">
+    <div class="stat-label">Total Rows</div>
+    <div class="stat-value accent">{{ row_count }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Columns</div>
+    <div class="stat-value">{{ columns | length }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Total Runs</div>
+    <div class="stat-value">{{ runs | length }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Auth Type</div>
+    <div
+      class="stat-value"
+      style="font-size: 18px; text-transform: uppercase; letter-spacing: 1px"
+    >
+      {{ cfg.auth.type }}
+    </div>
+  </div>
+</div>
+
+<!-- Data Preview -->
+<div class="card" style="margin-bottom: 20px">
+  <div class="card-title">Data Preview · last 10 rows</div>
+  {% if sample_rows %}
+  <div style="overflow-x: auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          {% for col in columns %}
+          <th>{{ col }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in sample_rows %}
+        <tr>
+          {% for col in columns %}
+          <td
+            class="mono"
+            style="
+              max-width: 200px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            "
+          >
+            {{ row.get(col, '') }}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding: 24px">
+    No data yet. Run the pipeline to collect records.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Schema -->
+{% if columns %}
+<div class="card" style="margin-bottom: 20px">
+  <div class="card-title">Schema · {{ columns | length }} columns</div>
+  <div style="display: flex; flex-wrap: wrap; gap: 8px">
+    {% for col in columns %}
+    <code style="font-size: 11px">{{ col }}</code>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Run History -->
+<div class="card">
+  <div class="card-title">Run History</div>
+  {% if runs %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Started</th>
+        <th>Status</th>
+        <th>Fetched</th>
+        <th>Written</th>
+        <th>Duration</th>
+        <th>Error</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for run in runs %}
+      <tr>
+        <td style="color: var(--muted)">
+          {{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') }} UTC
+        </td>
+        <td>
+          {% if run.success %}
+          <span class="badge badge-green">✓ OK</span>
+          {% else %}
+          <span class="badge badge-red">✗ Fail</span>
+          {% endif %}
+        </td>
+        <td>{{ run.records_fetched }}</td>
+        <td style="color: var(--accent); font-weight: 600">
+          {{ run.records_written }}
+        </td>
+        <td style="color: var(--muted)">
+          {% if run.finished_at %} {{ "%.1f"|format((run.finished_at -
+          run.started_at).total_seconds()) }}s {% else %}—{% endif %}
+        </td>
+        <td
+          style="
+            color: var(--red);
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          "
+        >
+          {{ run.error or '—' }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state" style="padding: 24px">No runs yet.</div>
+  {% endif %}
+</div>
+
+<!-- Config YAML viewer -->
+<div class="card" style="margin-top: 20px">
+  <div class="card-title">Config</div>
+  <pre
+    style="
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.8;
+      overflow-x: auto;
+    "
+  ><code>name: {{ cfg.name }}
+url: {{ cfg.url }}
+auth.type: {{ cfg.auth.type }}
+pagination.type: {{ cfg.pagination.type }}
+schedule.interval_mins: {{ cfg.schedule.interval_mins }}
+storage.table_name: {{ cfg.storage.table_name }}
+storage.upsert_key: {{ cfg.storage.upsert_key or 'none' }}</code></pre>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  async function runNow(name, btn) {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span> Running...';
+    btn.disabled = true;
+    try {
+      const res = await fetch(`/api/run/${name}`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        toast(
+          `✓ ${data.records_written} rows written in ${data.duration_s.toFixed(1)}s`,
+        );
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        toast(`✗ ${data.error}`, "error");
+      }
+    } catch (e) {
+      toast("Network error", "error");
+    }
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }
+</script>
+{% endblock %}
