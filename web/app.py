@@ -94,7 +94,7 @@ async def dashboard(request: Request):
             {
                 "name": cfg.name,
                 "table": cfg.storage.table_name,
-                "interval": cfg.schedule.interval_mins,
+                "interval_mins": cfg.schedule.interval_mins,
                 "row_count": _get_table_count(cfg.storage.table_name),
                 "last_run": s.get("last_run"),
                 "last_success": s.get("last_success", None),
