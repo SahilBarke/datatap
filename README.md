@@ -32,6 +32,9 @@ cp configs/pokemon.yaml configs/myapi.yaml
 # 4. Run
 python main.py
 # → Open http://localhost:8000
+# or 
+uvicorn web.app:app
+# -> http://127.0.0.1:8000
 ```
 
 ---
